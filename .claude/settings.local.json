@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__blender__get_scene_info",
+      "Bash(xcodebuild:*)",
+      "mcp__blender__get_viewport_screenshot",
+      "mcp__blender__get_object_info",
+      "mcp__blender__execute_blender_code",
+      "Bash(tree:*)",
+      "Bash(git -C /Users/gzonelee/git/MotionCapture log --oneline)",
+      "Bash(wc:*)"
+    ]
+  }
+}

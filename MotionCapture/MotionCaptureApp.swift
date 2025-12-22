@@ -11,7 +11,7 @@ import SwiftUI
 struct MotionCaptureApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            MotionListView()
         }
     }
 }
