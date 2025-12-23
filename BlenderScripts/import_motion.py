@@ -183,8 +183,12 @@ class MotionCaptureImporter:
         x, y, z, w = rotation
 
         # Remap axes: swap Y and Z
-        # Blender Quaternion takes (w, x, y, z)
-        return Quaternion((w, x, z, y))
+        remapped = Quaternion((w, x, z, y))
+
+        # Apply +90 degrees around X axis to stand up the character
+        correction = Quaternion((0.7071068, 0.7071068, 0, 0))
+
+        return correction @ remapped
 
     def _convert_position(self, position):
         """Convert ARKit position to Blender position.
