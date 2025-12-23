@@ -175,21 +175,16 @@ class MotionCaptureImporter:
         ARKit coordinate system: X-right, Y-up, Z-toward camera (right-handed)
         Blender coordinate system: X-right, Y-forward, Z-up (right-handed)
 
-        The conversion requires:
-        1. Axis remapping: ARKit Y->Blender Z, ARKit Z->Blender -Y
-        2. Additional -90 degree rotation around X to correct orientation
+        Trying simpler axis remapping without sign change on Z:
+        - ARKit X -> Blender X
+        - ARKit Y -> Blender Z
+        - ARKit Z -> Blender Y
         """
         x, y, z, w = rotation
 
-        # First, remap axes
-        # ARKit (x, y, z, w) -> intermediate (x, -z, y, w)
-        remapped = Quaternion((w, x, -z, y))
-
-        # Apply -90 degree rotation around X axis to fix the "lying down" issue
-        # This rotates from ARKit's coordinate frame to Blender's
-        correction = Quaternion((0.7071068, -0.7071068, 0, 0))  # -90 degrees around X
-
-        return correction @ remapped
+        # Remap axes: swap Y and Z
+        # Blender Quaternion takes (w, x, y, z)
+        return Quaternion((w, x, z, y))
 
     def _convert_position(self, position):
         """Convert ARKit position to Blender position.
@@ -200,10 +195,10 @@ class MotionCaptureImporter:
         Axis mapping (same as quaternion):
         - ARKit X -> Blender X
         - ARKit Y -> Blender Z
-        - ARKit Z -> Blender -Y
+        - ARKit Z -> Blender Y
         """
         x, y, z = position
-        return Vector((x * self.scale, -z * self.scale, y * self.scale))
+        return Vector((x * self.scale, z * self.scale, y * self.scale))
 
 
 class IMPORT_OT_motion_capture(Operator, ImportHelper):
