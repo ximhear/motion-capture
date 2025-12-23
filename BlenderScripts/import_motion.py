@@ -135,6 +135,14 @@ class MotionCaptureImporter:
 
         pose_bones = self.armature.pose.bones
 
+        # Cache rest pose rotations for each bone
+        rest_rotations = {}
+        for arkit_name, blender_bone_name in self.bone_mapping.items():
+            if blender_bone_name in pose_bones:
+                pose_bone = pose_bones[blender_bone_name]
+                # Get the rest pose rotation in world space
+                rest_rotations[arkit_name] = pose_bone.bone.matrix_local.to_quaternion()
+
         for frame_idx, frame_data in enumerate(frames):
             frame_num = frame_idx + 1  # Blender frames start at 1
             bpy.context.scene.frame_set(frame_num)
@@ -150,9 +158,14 @@ class MotionCaptureImporter:
 
                 # Apply rotation (quaternion)
                 rotation = joint_data.get('rotation', [0, 0, 0, 1])
-                quat = self._convert_quaternion(rotation)
+                world_quat = self._convert_quaternion(rotation)
+
+                # Convert world rotation to pose rotation (relative to rest pose)
+                rest_quat = rest_rotations.get(arkit_name, Quaternion())
+                pose_quat = rest_quat.inverted() @ world_quat
+
                 pose_bone.rotation_mode = 'QUATERNION'
-                pose_bone.rotation_quaternion = quat
+                pose_bone.rotation_quaternion = pose_quat
                 pose_bone.keyframe_insert(data_path='rotation_quaternion', frame=frame_num)
 
                 # Apply root position (only for hips)
@@ -170,26 +183,38 @@ class MotionCaptureImporter:
     def _convert_quaternion(self, rotation):
         """Convert ARKit quaternion to Blender quaternion.
 
-        ARKit: (x, y, z, w) with Y-up, Z-forward
-        Blender: (w, x, y, z) with Z-up, -Y-forward
+        ARKit coordinate system: X-right, Y-up, Z-toward camera (right-handed)
+        Blender coordinate system: X-right, Y-forward, Z-up (right-handed)
+
+        Axis mapping:
+        - ARKit X -> Blender X
+        - ARKit Y -> Blender Z
+        - ARKit Z -> Blender -Y
+
+        For quaternion (x, y, z, w), applying axis transformation:
+        - new_x = x
+        - new_y = -z (ARKit Z becomes Blender -Y)
+        - new_z = y  (ARKit Y becomes Blender Z)
         """
         x, y, z, w = rotation
 
-        # Coordinate system conversion: ARKit Y-up to Blender Z-up
-        # ARKit: X-right, Y-up, Z-toward viewer
-        # Blender: X-right, Y-forward, Z-up
-        # Rotation: swap Y and Z, negate new Y
-        return Quaternion((w, x, z, -y))
+        # Convert quaternion components with axis remapping
+        # Blender Quaternion takes (w, x, y, z)
+        return Quaternion((w, x, -z, y))
 
     def _convert_position(self, position):
         """Convert ARKit position to Blender position.
 
-        ARKit: Y-up coordinate system
-        Blender: Z-up coordinate system
+        ARKit: X-right, Y-up, Z-toward camera
+        Blender: X-right, Y-forward, Z-up
+
+        Axis mapping (same as quaternion):
+        - ARKit X -> Blender X
+        - ARKit Y -> Blender Z
+        - ARKit Z -> Blender -Y
         """
         x, y, z = position
-        # Swap Y and Z, apply scale
-        return Vector((x * self.scale, z * self.scale, y * self.scale))
+        return Vector((x * self.scale, -z * self.scale, y * self.scale))
 
 
 class IMPORT_OT_motion_capture(Operator, ImportHelper):
