@@ -69,20 +69,34 @@ class MotionCaptureImporter:
 
         pose_bones = self.armature.pose.bones
 
+        # Common prefixes used by various rigs
+        PREFIXES = ['', 'mixamorig:', 'mixamorig9:', 'Armature|', 'Character|']
+
         for arkit_name, blender_name in ARKIT_TO_BLENDER.items():
-            # Try exact match first
-            if blender_name in pose_bones:
-                self.bone_mapping[arkit_name] = blender_name
-            else:
-                # Try case-insensitive match
+            found = False
+
+            # Try with various prefixes
+            for prefix in PREFIXES:
+                full_name = prefix + blender_name
+                if full_name in pose_bones:
+                    self.bone_mapping[arkit_name] = full_name
+                    found = True
+                    break
+
+            if not found:
+                # Fallback: case-insensitive search
                 for bone in pose_bones:
-                    if bone.name.lower() == blender_name.lower():
+                    # Remove any prefix and compare
+                    bone_name_clean = bone.name.split(':')[-1] if ':' in bone.name else bone.name
+                    if bone_name_clean.lower() == blender_name.lower():
                         self.bone_mapping[arkit_name] = bone.name
+                        found = True
                         break
-                    # Try with common prefixes (mixamo:, etc.)
-                    if bone.name.lower().endswith(blender_name.lower()):
-                        self.bone_mapping[arkit_name] = bone.name
-                        break
+
+        # Debug: print mapping results
+        print(f"Bone mapping results ({len(self.bone_mapping)}/{len(ARKIT_TO_BLENDER)} matched):")
+        for arkit, blender in self.bone_mapping.items():
+            print(f"  {arkit} -> {blender}")
 
     def import_json(self, filepath):
         """Import motion data from JSON file."""
