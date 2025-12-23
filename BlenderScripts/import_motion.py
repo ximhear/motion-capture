@@ -135,14 +135,6 @@ class MotionCaptureImporter:
 
         pose_bones = self.armature.pose.bones
 
-        # Cache rest pose rotations for each bone
-        rest_rotations = {}
-        for arkit_name, blender_bone_name in self.bone_mapping.items():
-            if blender_bone_name in pose_bones:
-                pose_bone = pose_bones[blender_bone_name]
-                # Get the rest pose rotation in world space
-                rest_rotations[arkit_name] = pose_bone.bone.matrix_local.to_quaternion()
-
         for frame_idx, frame_data in enumerate(frames):
             frame_num = frame_idx + 1  # Blender frames start at 1
             bpy.context.scene.frame_set(frame_num)
@@ -156,16 +148,13 @@ class MotionCaptureImporter:
 
                 pose_bone = pose_bones[blender_bone_name]
 
-                # Apply rotation (quaternion)
+                # Apply local rotation (quaternion)
+                # Data from iOS app is already local rotation (relative to parent bone)
                 rotation = joint_data.get('rotation', [0, 0, 0, 1])
-                world_quat = self._convert_quaternion(rotation)
-
-                # Convert world rotation to pose rotation (relative to rest pose)
-                rest_quat = rest_rotations.get(arkit_name, Quaternion())
-                pose_quat = rest_quat.inverted() @ world_quat
+                local_quat = self._convert_quaternion(rotation)
 
                 pose_bone.rotation_mode = 'QUATERNION'
-                pose_bone.rotation_quaternion = pose_quat
+                pose_bone.rotation_quaternion = local_quat
                 pose_bone.keyframe_insert(data_path='rotation_quaternion', frame=frame_num)
 
                 # Apply root position (only for hips)

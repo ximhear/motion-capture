@@ -126,3 +126,45 @@ struct JointConnection {
         JointConnection(from: .rightFoot, to: .rightToes),
     ]
 }
+
+/// 각 관절의 부모 관절 매핑 (로컬 회전 계산용)
+struct JointHierarchy {
+    /// 각 관절의 부모 관절 (hips는 root이므로 부모 없음)
+    static let parentJoint: [String: String] = [
+        // Spine chain
+        "spine_2_joint": "hips_joint",
+        "spine_4_joint": "spine_2_joint",
+        "spine_7_joint": "spine_4_joint",
+        "neck_1_joint": "spine_7_joint",
+        "head_joint": "neck_1_joint",
+
+        // Left Arm chain
+        "left_shoulder_1_joint": "spine_7_joint",
+        "left_arm_joint": "left_shoulder_1_joint",
+        "left_forearm_joint": "left_arm_joint",
+        "left_hand_joint": "left_forearm_joint",
+
+        // Right Arm chain
+        "right_shoulder_1_joint": "spine_7_joint",
+        "right_arm_joint": "right_shoulder_1_joint",
+        "right_forearm_joint": "right_arm_joint",
+        "right_hand_joint": "right_forearm_joint",
+
+        // Left Leg chain
+        "left_upLeg_joint": "hips_joint",
+        "left_leg_joint": "left_upLeg_joint",
+        "left_foot_joint": "left_leg_joint",
+        "left_toes_joint": "left_foot_joint",
+
+        // Right Leg chain
+        "right_upLeg_joint": "hips_joint",
+        "right_leg_joint": "right_upLeg_joint",
+        "right_foot_joint": "right_leg_joint",
+        "right_toes_joint": "right_foot_joint",
+    ]
+
+    /// 부모 관절 이름 반환 (없으면 nil)
+    static func parent(of jointName: String) -> String? {
+        return parentJoint[jointName]
+    }
+}
